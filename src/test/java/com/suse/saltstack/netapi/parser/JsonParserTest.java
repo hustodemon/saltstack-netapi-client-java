@@ -4,6 +4,7 @@ import com.google.gson.JsonParseException;
 import com.suse.saltstack.netapi.datatypes.Arguments;
 import com.suse.saltstack.netapi.datatypes.Job;
 import com.suse.saltstack.netapi.datatypes.ScheduledJob;
+import com.suse.saltstack.netapi.datatypes.JobResult;
 import com.suse.saltstack.netapi.datatypes.Keys;
 import com.suse.saltstack.netapi.datatypes.cherrypy.Applications;
 import com.suse.saltstack.netapi.datatypes.cherrypy.HttpServer;
@@ -255,4 +256,16 @@ public class JsonParserTest {
         assertEquals(0, job.getArguments().getArgs().size());
         assertEquals(1, job.getArguments().getKwargs().size());
     }
+
+    @Test
+    public void testGetJobResult() {
+        InputStream is = this.getClass().getResourceAsStream("/job_response.json");
+        JobResult result = JsonParser.JOB_RESULT.parse(is);
+        assertNotNull("failed to parse", result);
+
+        JobResult job = result;
+        assertEquals(1, job.getResults().size());
+        assertEquals(true, job.getResults().get("blackbox"));
+    }
+
 }

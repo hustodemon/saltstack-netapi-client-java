@@ -1,6 +1,7 @@
 package com.suse.saltstack.netapi.client;
 
 import com.suse.saltstack.netapi.datatypes.Job;
+import com.suse.saltstack.netapi.datatypes.JobResult;
 import com.suse.saltstack.netapi.datatypes.cherrypy.Stats;
 import com.suse.saltstack.netapi.exception.SaltStackException;
 import com.suse.saltstack.netapi.client.impl.JDKConnectionFactory;
@@ -16,6 +17,7 @@ import static com.suse.saltstack.netapi.AuthModule.AUTO;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Arrays;
 import java.util.List;
@@ -74,6 +76,8 @@ public class SaltStackClientTest {
             SaltStackClientTest.class.getResourceAsStream("/keys_response.json"));
     static final String JSON_JOBS_RESPONSE = ClientUtils.streamToString(
             SaltStackClientTest.class.getResourceAsStream("/jobs_response.json"));
+    static final String JSON_JOB_RESPONSE = ClientUtils.streamToString(
+            SaltStackClientTest.class.getResourceAsStream("/job_response.json"));
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(MOCK_HTTP_PORT);
@@ -311,21 +315,6 @@ public class SaltStackClientTest {
     }
 
     @Test
-    public void testQueryJobResult() throws Exception {
-        stubFor(get(urlEqualTo("/jobs/some-job-id"))
-                .willReturn(aResponse()
-                .withStatus(HttpURLConnection.HTTP_OK)
-                .withHeader("Content-Type", "application/json")
-                .withBody(JSON_RUN_RESPONSE)));
-
-        Map<String, Object> retvals = client.getJobResult("some-job-id");
-
-        assertNotNull(retvals);
-        assertTrue(retvals.containsKey("minion-1"));
-        assertEquals(retvals.get("minion-1"), true);
-    }
-
-    @Test
     public void testStartCommandAsync() throws Exception {
         stubFor(post(urlEqualTo("/minions")).willReturn(
                 aResponse().withStatus(HttpURLConnection.HTTP_OK)
@@ -452,6 +441,56 @@ public class SaltStackClientTest {
         assertEquals(Arrays.asList("enable-autodestruction"),
                 jobs.get("20150304200110485012").getArguments().getArgs());
         verify(1, getRequestedFor(urlEqualTo("/jobs"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withRequestBody(equalTo("")));
+    }
+
+    @Test
+    public void testJobResult() throws Exception {
+        String jid = "20150304192817363806";
+        stubFor(get(urlMatching("/jobs/" + jid))
+                .willReturn(aResponse()
+                .withStatus(HttpURLConnection.HTTP_OK)
+                .withHeader("Content-Type", "application/json")
+                .withBody(JSON_JOB_RESPONSE)));
+
+        JobResult jobResult = client.getJobResult(jid);
+
+        assertNotNull(jobResult);
+        Map<String, Object> expectedMinionResult = new HashMap<String, Object>() {
+            {
+                put("blackbox", true);
+            }
+        };
+        assertEquals("test.ping", jobResult.getJob().getFunction());
+        assertEquals("*", jobResult.getJob().getTarget());
+        assertEquals("glob", jobResult.getJob().getTargetType());
+        assertEquals("johnny", jobResult.getJob().getUser());
+        assertEquals(expectedMinionResult, jobResult.getResults());
+        verify(1, getRequestedFor(urlEqualTo("/jobs/" + jid))
+                .withHeader("Accept", equalTo("application/json"))
+                .withRequestBody(equalTo("")));
+    }
+
+    @Test
+    public void testJobResultAsync() throws Exception {
+        String jid = "20150304192817363806";
+        stubFor(get(urlMatching("/jobs/" + jid))
+                .willReturn(aResponse()
+                .withStatus(HttpURLConnection.HTTP_OK)
+                .withHeader("Content-Type", "application/json")
+                .withBody(JSON_JOB_RESPONSE)));
+
+        JobResult job = client.getJobResultAsync(jid).get();
+
+        assertNotNull(job);
+        Map<String, Object> expectedMinionResult = new HashMap<String, Object>() {
+            {
+                put("blackbox", true);
+            }
+        };
+        assertEquals(expectedMinionResult, job.getResults());
+        verify(1, getRequestedFor(urlEqualTo("/jobs/" + jid))
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalTo("")));
     }

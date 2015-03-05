@@ -10,6 +10,7 @@ import com.suse.saltstack.netapi.exception.SaltStackException;
 import com.suse.saltstack.netapi.parser.JsonParser;
 import com.suse.saltstack.netapi.datatypes.Job;
 import com.suse.saltstack.netapi.datatypes.ScheduledJob;
+import com.suse.saltstack.netapi.datatypes.JobResult;
 import com.suse.saltstack.netapi.results.Result;
 import com.suse.saltstack.netapi.datatypes.Token;
 
@@ -251,35 +252,34 @@ public class SaltStackClient {
     }
 
     /**
-     * Query for result of supplied job.
+     * Query for job and its result.
      *
      * GET /job/<job-id>
      *
-     * @param job {@link ScheduledJob} object representing scheduled job
-     * @return Map key: minion id, value: command result from that minion
+     * @param jid String representing scheduled job id
+     * @return representation of a job containing the result
      * @throws SaltStackException if anything goes wrong
      */
-    public Map<String, Object> getJobResult(final ScheduledJob job)
-            throws SaltStackException {
-        return getJobResult(job.getJid());
+    public JobResult getJobResult(final String jid) throws SaltStackException {
+        return connectionFactory
+                .create("/jobs/" + jid, JsonParser.JOB_RESULT, config)
+                .getResult();
     }
 
     /**
-     * Query for result of supplied job.
+     * Get job with its result by job id.
      *
-     * GET /job/<job-id>
-     *
-     * @param job String representing scheduled job
-     * @return Map key: minion id, value: command result from that minion
-     * @throws SaltStackException if anything goes wrong
+     * @param jid job id
+     * @return future with a representation of a job containing the result
      */
-    public Map<String, Object> getJobResult(final String job) throws SaltStackException {
-        Result<List<Map<String, Object>>> result = connectionFactory
-                .create("/jobs/" + job, JsonParser.RETVALS, config)
-                .getResult();
-
-        // A list with one element is returned, we take the first
-        return result.getResult().get(0);
+    public Future<JobResult> getJobResultAsync(final String jid) {
+        Callable<JobResult> callable = new Callable<JobResult>() {
+            @Override
+            public JobResult call() throws SaltStackException {
+                return getJobResult(jid);
+            }
+        };
+        return executor.submit(callable);
     }
 
     /**
@@ -441,4 +441,5 @@ public class SaltStackClient {
         };
         return executor.submit(callable);
     }
+
 }

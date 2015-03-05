@@ -1,0 +1,27 @@
+{
+    "info": [
+        {
+            "StartTime": "2015, Mar 04 19:28:17.363806",
+            "Target": "*",
+            "Target-type": "glob",
+            "User": "johnny",
+            "Arguments": [],
+            "Function": "test.ping",
+
+            "jid": "20150304192817363806",
+            "Minions": [
+                "blackbox"
+            ],
+            "Result": {
+                "blackbox": {
+                    "return": true
+                }
+            }
+        }
+    ],
+    "return": [
+        {
+            "blackbox": true
+        }
+    ]
+}

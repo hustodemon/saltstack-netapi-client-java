@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken;
 import com.suse.saltstack.netapi.datatypes.Arguments;
 import com.suse.saltstack.netapi.datatypes.Job;
 import com.suse.saltstack.netapi.datatypes.ScheduledJob;
+import com.suse.saltstack.netapi.datatypes.JobResult;
 import com.suse.saltstack.netapi.datatypes.Keys;
 import com.suse.saltstack.netapi.datatypes.Token;
 import com.suse.saltstack.netapi.datatypes.cherrypy.Applications;
@@ -42,6 +43,8 @@ public class JsonParser<T> {
             new JsonParser<>(new TypeToken<Result<List<ScheduledJob>>>(){});
     public static final JsonParser<Result<List<Map<String, Job>>>> JOBS =
             new JsonParser<>(new TypeToken<Result<List<Map<String, Job>>>>(){});
+    public static final JsonParser<JobResult> JOB_RESULT =
+            new JsonParser<>(new TypeToken<JobResult>(){});
     public static final JsonParser<Result<List<Map<String, Object>>>> RETVALS =
             new JsonParser<>(new TypeToken<Result<List<Map<String, Object>>>>(){});
     public static final JsonParser<Stats> STATS =
@@ -63,6 +66,7 @@ public class JsonParser<T> {
                 .registerTypeAdapter(Date.class, new SaltStackDateDeserializer())
                 .registerTypeAdapter(Stats.class, new StatsDeserializer())
                 .registerTypeAdapter(Arguments.class, new ArgumentsDeserializer())
+                .registerTypeAdapter(JobResult.class, new JobResultDeserializer())
                 .create();
     }
 
@@ -210,6 +214,26 @@ public class JsonParser<T> {
                     && jsonElement.getAsJsonObject().has(KWARG_KEY)) {
                 jsonElement.getAsJsonObject().remove(KWARG_KEY);
             }
+        }
+    }
+
+    /**
+     * Deserializer for {@link Job} class
+     */
+    private class JobResultDeserializer implements JsonDeserializer<JobResult> {
+        @Override
+        public JobResult deserialize(JsonElement json, Type typeOfT,
+                JsonDeserializationContext context)
+                throws JsonParseException {
+            JsonObject jsonObject = json.getAsJsonObject();
+            JsonElement info = jsonObject.get("info");
+            JsonElement returnVal = jsonObject.get("return");
+
+            Job job = gson.fromJson(info.getAsJsonArray().get(0), Job.class);
+            Map result = gson.fromJson(returnVal.getAsJsonArray().get(0), Map.class);
+
+            JobResult jobResult = new JobResult(job, (Map<String, Object>) result);
+            return jobResult;
         }
     }
 }
