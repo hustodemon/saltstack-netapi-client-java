@@ -7,7 +7,7 @@ import com.suse.saltstack.netapi.config.ProxySettings;
 import com.suse.saltstack.netapi.datatypes.cherrypy.Stats;
 import com.suse.saltstack.netapi.exception.SaltStackException;
 import com.suse.saltstack.netapi.parser.JsonParser;
-import com.suse.saltstack.netapi.datatypes.Job;
+import com.suse.saltstack.netapi.datatypes.JobMinions;
 import com.suse.saltstack.netapi.results.Result;
 import com.suse.saltstack.netapi.datatypes.Token;
 
@@ -236,8 +236,8 @@ public class SaltStackClient {
      * @return object representing the scheduled job
      * @throws SaltStackException if anything goes wrong
      */
-    public Job startCommand(final String target, final String function, List<String> args,
-            Map<String, String> kwargs) throws SaltStackException {
+    public JobMinions startCommand(final String target, final String function,
+            List<String> args, Map<String, String> kwargs) throws SaltStackException {
         Map<String, String> props = new LinkedHashMap<String, String>() {
             {
                 put("tgt", target);
@@ -249,8 +249,8 @@ public class SaltStackClient {
         jsonArray.add(ClientUtils.makeJsonData(props, kwargs, args));
 
         // Connect to the minions endpoint and send the above lowstate data
-        Result<List<Job>> result = connectionFactory
-                .create("/minions", JsonParser.JOB,  config)
+        Result<List<JobMinions>> result = connectionFactory
+                .create("/minions", JsonParser.JOB_MINIONS,  config)
                 .getResult(jsonArray.toString());
 
         // They return a list of tokens here, we take the first
@@ -266,13 +266,13 @@ public class SaltStackClient {
      * @param function the function to execute
      * @param args list of non-keyword arguments
      * @param kwargs map containing keyword arguments
-     * @return Future containing the scheduled job {@link Job}
+     * @return Future containing the scheduled job {@link JobMinions}
      */
-    public Future<Job> startCommandAsync(final String target, final String function,
+    public Future<JobMinions> startCommandAsync(final String target, final String function,
             final List<String> args, final Map<String, String> kwargs) {
-        Callable<Job> callable = new Callable<Job>() {
+        Callable<JobMinions> callable = new Callable<JobMinions>() {
             @Override
-            public Job call() throws SaltStackException {
+            public JobMinions call() throws SaltStackException {
                 return startCommand(target, function, args, kwargs);
             }
         };
@@ -284,11 +284,12 @@ public class SaltStackClient {
      *
      * GET /job/<job-id>
      *
-     * @param job {@link Job} object representing scheduled job
+     * @param job {@link JobMinions} object representing scheduled job
      * @return Map key: minion id, value: command result from that minion
      * @throws SaltStackException if anything goes wrong
      */
-    public Map<String, Object> getJobResult(final Job job) throws SaltStackException {
+    public Map<String, Object> getJobResult(final JobMinions job)
+            throws SaltStackException {
         return getJobResult(job.getJid());
     }
 
