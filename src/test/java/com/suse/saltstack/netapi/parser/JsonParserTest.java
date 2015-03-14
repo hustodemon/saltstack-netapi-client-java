@@ -1,11 +1,14 @@
 package com.suse.saltstack.netapi.parser;
 
 import com.google.gson.JsonParseException;
+import com.suse.saltstack.netapi.datatypes.cherrypy.Arguments;
+import com.suse.saltstack.netapi.datatypes.Job;
 import com.suse.saltstack.netapi.datatypes.JobMinions;
 import com.suse.saltstack.netapi.datatypes.cherrypy.*;
 import com.suse.saltstack.netapi.results.Result;
 import com.suse.saltstack.netapi.datatypes.Token;
 import java.util.Date;
+import java.util.Map;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -122,5 +125,48 @@ public class JsonParserTest {
             assertEquals(6, thread.getWorkTime(), 0);
             assertEquals(7.8, thread.getWriteThroughput(), 0);
         }
+    }
+
+    @Test
+    public void testSaltStackJobsWithArgsParser() throws Exception {
+        InputStream is = this.getClass().getResourceAsStream("/jobs_response.json");
+        Result<List<Map<String, Job>>> result = JsonParser.JOBS.parse(is);
+        assertNotNull("failed to parse", result);
+
+        Map<String, Job> jobs = result.getResult().get(0);
+        Job job = jobs.get("20150304200110485012");
+        assertNotNull(job);
+        Arguments expectedArgs = new Arguments();
+        expectedArgs.getArgs().add("enable-autodestruction");
+        assertEquals(expectedArgs.getArgs(), job.getArguments().getArgs());
+        assertEquals(expectedArgs.getKwargs(), job.getArguments().getKwargs());
+        assertEquals("test.echo", job.getFunction());
+        assertEquals("*", job.getTarget());
+        assertEquals("glob", job.getTargetType());
+        assertEquals("chuck", job.getUser());
+    }
+
+    @Test
+    public void testSaltStackJobsWithKwargsParser() throws Exception {
+        InputStream is = this.getClass().getResourceAsStream("/jobs_response_kwargs.json");
+        Result<List<Map<String, Job>>> result = JsonParser.JOBS.parse(is);
+        assertNotNull("failed to parse", result);
+
+        Map<String, Job> jobs = result.getResult().get(0);
+        Job job = jobs.get("20150306023815935637");
+        assertNotNull(job);
+
+        Arguments expectedArgs = new Arguments();
+        expectedArgs.getArgs().add("i3");
+        expectedArgs.getArgs().add(true);
+        expectedArgs.getKwargs().put("sysupgrade", true);
+        expectedArgs.getKwargs().put("otherkwarg", 42.5);
+
+        assertEquals(expectedArgs.getArgs(), job.getArguments().getArgs());
+        assertEquals(expectedArgs.getKwargs(), job.getArguments().getKwargs());
+        assertEquals("pkg.install", job.getFunction());
+        assertEquals("*", job.getTarget());
+        assertEquals("glob", job.getTargetType());
+        assertEquals("lucid", job.getUser());
     }
 }
